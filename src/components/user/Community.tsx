@@ -7,6 +7,7 @@ import { Badge } from '../ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Heart, MessageCircle, Share2, Users, Calendar, BookOpen, TrendingUp } from 'lucide-react';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
+import { VoiceSearch } from '../accessibility/VoiceSearch';
 
 interface Post {
   id: string;
@@ -22,6 +23,7 @@ interface Post {
 
 export function Community() {
   const [newPost, setNewPost] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [posts, setPosts] = useState<Post[]>([
     {
       id: '1',
@@ -83,6 +85,16 @@ export function Community() {
       setNewPost('');
     }
   };
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+  };
+
+  // Filter posts based on search query
+  const filteredPosts = posts.filter(post => 
+    post.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    post.author.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const upcomingEvents = [
     { title: 'Prenatal Yoga Class', date: 'Nov 5, 2025', participants: 12 },
@@ -174,6 +186,19 @@ export function Community() {
             </CardContent>
           </Card>
 
+          {/* Search Posts */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Search Posts</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <VoiceSearch 
+                placeholder="Search posts by content or author..." 
+                onSearch={handleSearch}
+              />
+            </CardContent>
+          </Card>
+
           {/* Posts Feed */}
           <Tabs defaultValue="all">
             <TabsList className="w-full justify-start">
@@ -184,7 +209,7 @@ export function Community() {
             </TabsList>
 
             <TabsContent value="all" className="space-y-4 mt-4">
-              {posts.map((post) => (
+              {filteredPosts.map((post) => (
                 <Card key={post.id}>
                   <CardContent className="pt-6">
                     <div className="flex gap-4">
@@ -233,8 +258,66 @@ export function Community() {
               ))}
             </TabsContent>
 
+            <TabsContent value="trimester1" className="space-y-4 mt-4">
+              {filteredPosts.filter(p => p.trimester === '1st Trimester').length > 0 ? (
+                filteredPosts.filter(p => p.trimester === '1st Trimester').map((post) => (
+                  <Card key={post.id}>
+                    <CardContent className="pt-6">
+                      <div className="flex gap-4">
+                        <Avatar>
+                          <AvatarImage src={post.avatar} alt={post.author} />
+                          <AvatarFallback>{post.author[0]}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between mb-2">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span>{post.author}</span>
+                                <Badge variant="secondary" className="text-xs">
+                                  {post.trimester}
+                                </Badge>
+                              </div>
+                              <span className="text-sm text-muted-foreground">{post.timeAgo}</span>
+                            </div>
+                          </div>
+                          <p className="mb-4">{post.content}</p>
+                          <div className="flex gap-4">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleLike(post.id)}
+                              className={post.isLiked ? 'text-[#FF69B4]' : ''}
+                            >
+                              <Heart
+                                className={`w-4 h-4 mr-2 ${post.isLiked ? 'fill-current' : ''}`}
+                              />
+                              {post.likes}
+                            </Button>
+                            <Button variant="ghost" size="sm">
+                              <MessageCircle className="w-4 h-4 mr-2" />
+                              {post.comments}
+                            </Button>
+                            <Button variant="ghost" size="sm">
+                              <Share2 className="w-4 h-4 mr-2" />
+                              Share
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              ) : (
+                <Card>
+                  <CardContent className="pt-6 text-center text-muted-foreground">
+                    No posts found for 1st Trimester
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+
             <TabsContent value="trimester2" className="space-y-4 mt-4">
-              {posts.filter(p => p.trimester === '2nd Trimester').map((post) => (
+              {filteredPosts.filter(p => p.trimester === '2nd Trimester').map((post) => (
                 <Card key={post.id}>
                   <CardContent className="pt-6">
                     <div className="flex gap-4">
@@ -270,6 +353,60 @@ export function Community() {
                           <Button variant="ghost" size="sm">
                             <MessageCircle className="w-4 h-4 mr-2" />
                             {post.comments}
+                          </Button>
+                          <Button variant="ghost" size="sm">
+                            <Share2 className="w-4 h-4 mr-2" />
+                            Share
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </TabsContent>
+
+            <TabsContent value="trimester3" className="space-y-4 mt-4">
+              {filteredPosts.filter(p => p.trimester === '3rd Trimester').map((post) => (
+                <Card key={post.id}>
+                  <CardContent className="pt-6">
+                    <div className="flex gap-4">
+                      <Avatar>
+                        <AvatarImage src={post.avatar} alt={post.author} />
+                        <AvatarFallback>{post.author[0]}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-2">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span>{post.author}</span>
+                              <Badge variant="secondary" className="text-xs">
+                                {post.trimester}
+                              </Badge>
+                            </div>
+                            <span className="text-sm text-muted-foreground">{post.timeAgo}</span>
+                          </div>
+                        </div>
+                        <p className="mb-4">{post.content}</p>
+                        <div className="flex gap-4">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleLike(post.id)}
+                            className={post.isLiked ? 'text-[#FF69B4]' : ''}
+                          >
+                            <Heart
+                              className={`w-4 h-4 mr-2 ${post.isLiked ? 'fill-current' : ''}`}
+                            />
+                            {post.likes}
+                          </Button>
+                          <Button variant="ghost" size="sm">
+                            <MessageCircle className="w-4 h-4 mr-2" />
+                            {post.comments}
+                          </Button>
+                          <Button variant="ghost" size="sm">
+                            <Share2 className="w-4 h-4 mr-2" />
+                            Share
                           </Button>
                         </div>
                       </div>

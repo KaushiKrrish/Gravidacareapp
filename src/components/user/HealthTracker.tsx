@@ -6,6 +6,7 @@ import { Label } from '../ui/label';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { Activity, Heart, Scale, Ruler, TrendingUp } from 'lucide-react';
 import { Progress } from '../ui/progress';
+import { toast } from 'sonner@2.0.3';
 
 interface HealthMetric {
   date: string;
@@ -40,7 +41,7 @@ export function HealthTracker() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // Mock save functionality
-    alert('Health data saved successfully!');
+    toast.success('All the Measurements were Saved Successfully!');
   };
 
   return (

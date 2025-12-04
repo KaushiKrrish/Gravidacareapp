@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -8,7 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Badge } from '../ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Sparkles, Copy, Download, Send, CheckCircle, AlertTriangle } from 'lucide-react';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
+import { VoiceSearch } from '../accessibility/VoiceSearch';
 
 interface Medication {
   name: string;
@@ -41,9 +42,15 @@ export function MedicationSuggestion() {
   ];
 
   const generateScript = () => {
+    // Defensive check (shouldn't be called if button disabled, but double-check)
+    if (!patientName.trim() || !trimester || !symptoms.trim()) {
+      toast.error('Please fill patient name, trimester and symptoms before generating.');
+      return;
+    }
+
     setIsGenerating(true);
 
-    // Simulate AI processing
+    // Simulate AI processing (replace with real API call)
     setTimeout(() => {
       const mockScript: AIScript = {
         medications: [
@@ -107,7 +114,6 @@ WARNINGS & PRECAUTIONS:
 ${generatedScript.warnings.map((w, i) => `${i + 1}. ${w}`).join('\n')}
     `.trim();
 
-    // Helper function to use fallback copy method
     const fallbackCopy = () => {
       const textArea = document.createElement('textarea');
       textArea.value = scriptText;
@@ -117,45 +123,41 @@ ${generatedScript.warnings.map((w, i) => `${i + 1}. ${w}`).join('\n')}
       document.body.appendChild(textArea);
       textArea.focus();
       textArea.select();
-      
+
       try {
         const successful = document.execCommand('copy');
         document.body.removeChild(textArea);
         return successful;
       } catch (err) {
         document.body.removeChild(textArea);
-        throw err;
+        return false;
       }
     };
 
     try {
-      // Try modern Clipboard API first
       if (navigator.clipboard && window.isSecureContext) {
         try {
           await navigator.clipboard.writeText(scriptText);
           toast.success('Prescription copied to clipboard!');
           return;
         } catch (clipboardError) {
-          // If Clipboard API fails, try fallback
-          console.log('Clipboard API failed, trying fallback method');
+          console.warn('Clipboard API failed, falling back to legacy method', clipboardError);
           if (fallbackCopy()) {
             toast.success('Prescription copied to clipboard!');
             return;
           }
         }
       } else {
-        // Use fallback directly if Clipboard API not available
         if (fallbackCopy()) {
           toast.success('Prescription copied to clipboard!');
           return;
         }
       }
-      
-      // If we get here, all methods failed
+
       throw new Error('All copy methods failed');
     } catch (error) {
       console.error('Failed to copy to clipboard:', error);
-      toast.error('Failed to copy prescription. Please try selecting and copying the text manually.');
+      toast.error('Failed to copy prescription. Please select the text and copy manually.');
     }
   };
 
@@ -173,18 +175,26 @@ ${generatedScript.warnings.map((w, i) => `${i + 1}. ${w}`).join('\n')}
             </div>
           </div>
         </CardHeader>
+
         <CardContent>
           <div className="space-y-4">
+            {/* Patient name + Trimester row */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="patient-name">Patient Name</Label>
+
+                {/* Plain input so typing works */}
                 <Input
                   id="patient-name"
                   placeholder="Enter patient name"
                   value={patientName}
                   onChange={(e) => setPatientName(e.target.value)}
                 />
+
+                {/* Keep VoiceSearch as optional helper */}
+
               </div>
+
               <div className="space-y-2">
                 <Label htmlFor="trimester">Trimester</Label>
                 <Select value={trimester} onValueChange={setTrimester}>
@@ -200,6 +210,7 @@ ${generatedScript.warnings.map((w, i) => `${i + 1}. ${w}`).join('\n')}
               </div>
             </div>
 
+            {/* Symptoms */}
             <div className="space-y-2">
               <Label htmlFor="symptoms">Symptoms & Conditions</Label>
               <Textarea
@@ -211,6 +222,7 @@ ${generatedScript.warnings.map((w, i) => `${i + 1}. ${w}`).join('\n')}
               />
             </div>
 
+            {/* Quick add badges */}
             <div className="space-y-2">
               <Label>Quick Add Common Conditions</Label>
               <div className="flex flex-wrap gap-2">
@@ -219,7 +231,11 @@ ${generatedScript.warnings.map((w, i) => `${i + 1}. ${w}`).join('\n')}
                     key={index}
                     variant="outline"
                     className="cursor-pointer hover:bg-[#E8EFFF] transition-colors"
-                    onClick={() => setSymptoms(prev => prev ? `${prev}, ${condition.keywords}` : condition.keywords)}
+                    onClick={() =>
+                      setSymptoms(prev =>
+                        prev && prev.trim() ? `${prev}, ${condition.keywords}` : condition.keywords
+                      )
+                    }
                   >
                     + {condition.name}
                   </Badge>
@@ -227,14 +243,19 @@ ${generatedScript.warnings.map((w, i) => `${i + 1}. ${w}`).join('\n')}
               </div>
             </div>
 
+            {/* Generate Button — note type="button" and trimmed validation */}
             <Button
-              onClick={generateScript}
-              disabled={!patientName || !trimester || !symptoms || isGenerating}
+              type="button"
+              onClick={() => {
+                console.log('Generate button clicked; patientName:', patientName, 'trimester:', trimester, 'symptoms:', symptoms);
+                generateScript();
+              }}
+              disabled={!patientName.trim() || !trimester || !symptoms.trim() || isGenerating}
               className="w-full bg-[#FF69B4] hover:bg-[#E558A3]"
             >
               {isGenerating ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
                   Generating AI Prescription...
                 </>
               ) : (
@@ -267,17 +288,18 @@ ${generatedScript.warnings.map((w, i) => `${i + 1}. ${w}`).join('\n')}
                   <Copy className="w-4 h-4 mr-2" />
                   Copy
                 </Button>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" onClick={() => toast('Download not implemented')}>
                   <Download className="w-4 h-4 mr-2" />
                   Download
                 </Button>
-                <Button size="sm" className="bg-[#5B7FDB]">
+                <Button size="sm" className="bg-[#5B7FDB]" onClick={() => toast('Send to patient not implemented')}>
                   <Send className="w-4 h-4 mr-2" />
                   Send to Patient
                 </Button>
               </div>
             </div>
           </CardHeader>
+
           <CardContent>
             <Tabs defaultValue="medications">
               <TabsList>
@@ -370,7 +392,7 @@ ${generatedScript.warnings.map((w, i) => `${i + 1}. ${w}`).join('\n')}
                   <Badge variant={prescription.status === 'Sent' ? 'default' : 'secondary'}>
                     {prescription.status}
                   </Badge>
-                  <Button variant="ghost" size="sm">
+                  <Button variant="ghost" size="sm" onClick={() => toast('View not implemented')}>
                     <Eye className="w-4 h-4" />
                   </Button>
                 </div>
@@ -407,6 +429,7 @@ ${generatedScript.warnings.map((w, i) => `${i + 1}. ${w}`).join('\n')}
   );
 }
 
+/* Local Eye SVG used in "Recent Prescriptions" */
 function Eye({ className }: { className?: string }) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -415,3 +438,6 @@ function Eye({ className }: { className?: string }) {
     </svg>
   );
 }
+
+export default MedicationSuggestion;
+

@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import { Apple, Coffee, Salad, Pizza, Plus, Check } from 'lucide-react';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
+import { VoiceSearch } from '../accessibility/VoiceSearch';
 
 interface Meal {
   id: string;
@@ -21,6 +22,7 @@ interface Meal {
 }
 
 export function DietPlanner() {
+  const [searchQuery, setSearchQuery] = useState('');
   const [waterGlasses, setWaterGlasses] = useState<boolean[]>([
     true, true, true, true, true, false, false, false
   ]);
@@ -116,8 +118,28 @@ export function DietPlanner() {
     { name: 'Sweet Potato', benefit: 'Vitamin A and fiber', icon: '🍠' }
   ];
 
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+  };
+
+  const filteredFoods = searchQuery
+    ? recommendedFoods.filter(food =>
+        food.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        food.benefit.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : recommendedFoods;
+
   return (
     <div className="space-y-6">
+      {/* Voice Search */}
+      <Card>
+        <CardContent className="pt-6">
+          <VoiceSearch
+            placeholder="Search for meals, nutrients, or foods..."
+            onSearch={handleSearch}
+          />
+        </CardContent>
+      </Card>
       {/* Daily Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
@@ -274,7 +296,7 @@ export function DietPlanner() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {recommendedFoods.map((food, index) => (
+            {filteredFoods.map((food, index) => (
               <div
                 key={index}
                 className="p-4 rounded-lg bg-gradient-to-br from-[#E8EFFF] to-[#FFE8F5] hover:shadow-md transition-shadow"

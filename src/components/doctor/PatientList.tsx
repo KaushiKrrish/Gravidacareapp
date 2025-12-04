@@ -5,8 +5,10 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { Search, Eye, TrendingUp, AlertCircle, CheckCircle } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from '../ui/dropdown-menu';
+import { Search, Eye, TrendingUp, AlertCircle, CheckCircle, Filter, Check } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { VoiceSearch } from '../accessibility/VoiceSearch';
 
 interface Patient {
   id: string;
@@ -30,6 +32,8 @@ interface PatientListProps {
 export function PatientList({ highlightCritical = false, onHighlightComplete }: PatientListProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [trimesterFilter, setTrimesterFilter] = useState<string>('all');
   const criticalPatientRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
   const patients: Patient[] = [
@@ -100,9 +104,25 @@ export function PatientList({ highlightCritical = false, onHighlightComplete }: 
     }
   ];
 
-  const filteredPatients = patients.filter(p =>
-    p.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const getTrimester = (weeks: number): string => {
+    if (weeks <= 13) return 'first';
+    if (weeks <= 27) return 'second';
+    return 'third';
+  };
+
+  const filteredPatients = patients.filter(p => {
+    // Search filter
+    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    // Status filter
+    const matchesStatus = statusFilter === 'all' || p.status === statusFilter;
+    
+    // Trimester filter
+    const patientTrimester = getTrimester(p.weeks);
+    const matchesTrimester = trimesterFilter === 'all' || patientTrimester === trimesterFilter;
+    
+    return matchesSearch && matchesStatus && matchesTrimester;
+  });
 
   useEffect(() => {
     if (highlightCritical) {
@@ -161,18 +181,86 @@ export function PatientList({ highlightCritical = false, onHighlightComplete }: 
         </CardHeader>
         <CardContent>
           <div className="flex gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Search patients by name..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Button variant="outline" className="whitespace-nowrap">
-              Filter by Status
-            </Button>
+            <VoiceSearch
+              placeholder="Search patients by name..."
+              onSearch={(query) => setSearchQuery(query)}
+              className="flex-1"
+            />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="whitespace-nowrap">
+                  <Filter className="w-4 h-4 mr-2" />
+                  Filter
+                  {(statusFilter !== 'all' || trimesterFilter !== 'all') && (
+                    <Badge variant="secondary" className="ml-2 h-5 px-1 text-xs">
+                      {[statusFilter !== 'all' ? 1 : 0, trimesterFilter !== 'all' ? 1 : 0].reduce((a, b) => a + b)}
+                    </Badge>
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Filter Options</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>
+                    <AlertCircle className="w-4 h-4 mr-2" />
+                    Conditions
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent>
+                    <DropdownMenuItem onClick={() => setStatusFilter('all')}>
+                      {statusFilter === 'all' && <Check className="w-4 h-4 mr-2" />}
+                      {statusFilter !== 'all' && <span className="w-4 h-4 mr-2" />}
+                      All Statuses
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setStatusFilter('healthy')}>
+                      {statusFilter === 'healthy' && <Check className="w-4 h-4 mr-2" />}
+                      {statusFilter !== 'healthy' && <span className="w-4 h-4 mr-2" />}
+                      Healthy
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setStatusFilter('monitor')}>
+                      {statusFilter === 'monitor' && <Check className="w-4 h-4 mr-2" />}
+                      {statusFilter !== 'monitor' && <span className="w-4 h-4 mr-2" />}
+                      Monitor
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setStatusFilter('critical')}>
+                      {statusFilter === 'critical' && <Check className="w-4 h-4 mr-2" />}
+                      {statusFilter !== 'critical' && <span className="w-4 h-4 mr-2" />}
+                      Critical
+                    </DropdownMenuItem>
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>
+                    <TrendingUp className="w-4 h-4 mr-2" />
+                    Trimesters
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent>
+                    <DropdownMenuItem onClick={() => setTrimesterFilter('all')}>
+                      {trimesterFilter === 'all' && <Check className="w-4 h-4 mr-2" />}
+                      {trimesterFilter !== 'all' && <span className="w-4 h-4 mr-2" />}
+                      All Trimesters
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setTrimesterFilter('first')}>
+                      {trimesterFilter === 'first' && <Check className="w-4 h-4 mr-2" />}
+                      {trimesterFilter !== 'first' && <span className="w-4 h-4 mr-2" />}
+                      First (1-13 weeks)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setTrimesterFilter('second')}>
+                      {trimesterFilter === 'second' && <Check className="w-4 h-4 mr-2" />}
+                      {trimesterFilter !== 'second' && <span className="w-4 h-4 mr-2" />}
+                      Second (14-27 weeks)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setTrimesterFilter('third')}>
+                      {trimesterFilter === 'third' && <Check className="w-4 h-4 mr-2" />}
+                      {trimesterFilter !== 'third' && <span className="w-4 h-4 mr-2" />}
+                      Third (28-40 weeks)
+                    </DropdownMenuItem>
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </CardContent>
       </Card>
